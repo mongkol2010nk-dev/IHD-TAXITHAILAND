@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บทความ IHD TAXI</title>
+<style>
+:root{--bg:#eafaf3;--card:#fff;--ink:#12382c;--mute:#5a7a6e;--main:#0b8f63;--line:#bfeadb}
+*{box-sizing:border-box}
+#ihd{font-family:"Noto Sans Thai","Sarabun",system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:20px 16px;border-radius:20px;max-width:960px;margin:0 auto}
+#ihd h2{margin:0;font-size:1.5rem;color:#07694a}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}
+.btn{border:0;border-radius:999px;padding:10px 18px;font:inherit;font-weight:600;background:var(--main);color:#fff;cursor:pointer}
+.btn.alt{background:#fff;color:var(--main);border:1.5px solid var(--main)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;cursor:pointer;text-align:left;padding:0;font:inherit;color:inherit}
+.card img,.ph{width:100%;height:140px;object-fit:cover;display:block;background:linear-gradient(135deg,#7fe3c1,#bff3e2)}
+.card div{padding:12px 14px 14px}
+.card b{display:block;font-size:1.02rem;margin-bottom:4px}
+.card small{color:var(--mute)}
+.card p{margin:6px 0 0;font-size:.9rem;color:var(--mute);line-height:1.5}
+.modal{position:fixed;inset:0;background:rgba(8,40,30,.55);display:none;align-items:flex-end;justify-content:center;z-index:9999;padding:0}
+.modal.on{display:flex}
+.sheet{background:#fff;color:var(--ink);width:100%;max-width:680px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 18px 28px}
+.sheet header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.x{border:0;background:var(--bg);width:38px;height:38px;border-radius:50%;font-size:1.3rem;cursor:pointer;color:var(--ink)}
+.sheet img{width:100%;border-radius:14px;margin-bottom:10px}
+.sheet h1{font-size:1.35rem;margin:4px 0}
+.sheet h3{color:#07694a;margin:18px 0 6px}
+.sheet p,.sheet li{line-height:1.75}
+label{display:block;font-weight:600;margin:12px 0 4px;font-size:.92rem}
+input,textarea{width:100%;font:inherit;padding:11px 12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+textarea{min-height:200px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+details{margin:6px 0 4px;background:var(--bg);border-radius:12px;padding:10px 12px}
+summary{font-weight:600;cursor:pointer}
+.msg{margin-top:12px;font-weight:600}
+.hint{font-size:.85rem;color:var(--mute);line-height:1.6}
+</style>
+</head>
+<body>
+<div id="ihd">
+  <div class="top">
+    <a href="index.html" class="btn alt" style="text-decoration:none">หน้าแรก</a>
+    <h2>บทความ</h2>
+    <button class="btn" id="newBtn">+ เขียนบทความ</button>
+  </div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="modal" id="readM"><div class="sheet">
+  <header><span class="hint" id="rDate"></span><button class="x" data-close aria-label="ปิด">×</button></header>
+  <div id="rBody"></div>
+</div></div>
+
+<div class="modal" id="writeM"><div class="sheet">
+  <header><b>เขียนบทความใหม่</b><button class="x" data-close aria-label="ปิด">×</button></header>
+  <details id="cfg"><summary>ตั้งค่าครั้งแรก</summary>
+    <div class="row">
+      <div><label>ชื่อบัญชี GitHub</label><input id="gu" autocomplete="off"></div>
+      <div><label>ชื่อ Repository</label><input id="gr" autocomplete="off"></div>
+      <div><label>Branch</label><input id="gb" value="main"></div>
+      <div><label>GitHub Token</label><input id="gt" type="password" placeholder="github_pat_..."></div>
+    </div>
+    <p class="hint">Token สร้างที่ GitHub → Settings → Developer settings → Fine-grained tokens เลือก Repository เดียว สิทธิ์ Contents = Read and write ห้ามส่งให้ผู้อื่น</p>
+  </details>
+  <label>หัวข้อ</label><input id="wt">
+  <label>เนื้อหา</label>
+  <textarea id="wb" placeholder="แยกย่อหน้าด้วยบรรทัดว่าง&#10;## หัวข้อย่อย&#10;- รายการ"></textarea>
+  <label>รูปปก (ไม่บังคับ)</label><input id="wf" type="file" accept="image/*">
+  <button class="btn" id="pub" style="width:100%;margin-top:16px">เผยแพร่บทความ</button>
+  <div class="msg" id="msg"></div>
+</div></div>
+
+<script>
+/* ใส่ชื่อบัญชี GitHub ตรงนี้ได้ ถ้าเว็บไม่ได้อยู่บน github.io */
+var GH_USER="mongkol2010nk-dev", GH_REPO="IHD-TAXI-THAILAND", GH_BRANCH="main";
+var FILE="articles.json";
+
+var ARTICLES=[
+ {id:"sample-1",date:"2026-10-20",title:"เดินทางไปสนามบินให้ทันเวลา",body:"## เผื่อเวลาให้พอ\n- เที่ยวบินในประเทศ ถึงสนามบินอย่างน้อย 2 ชั่วโมงก่อนเวลาบิน\n- เที่ยวบินระหว่างประเทศ ถึงอย่างน้อย 3 ชั่วโมง\n\n## จองล่วงหน้าดีที่สุด\nแนะนำจองล่วงหน้าอย่างน้อย 1 วัน"}
+];
+
+var $=function(i){return document.getElementById(i)};
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k)||"";localStorage.setItem(k,v)}catch(e){return ""}}
+
+function fmt(b){var h="",ul=false;String(b).split("\n").forEach(function(l){l=l.trim();
+ if(l.indexOf("- ")===0){if(!ul){h+="<ul>";ul=true}h+="<li>"+esc(l.slice(2))+"</li>";return}
+ if(ul){h+="</ul>";ul=false}
+ if(l.indexOf("## ")===0)h+="<h3>"+esc(l.slice(3))+"</h3>";else if(l)h+="<p>"+esc(l)+"</p>"});
+ return h+(ul?"</ul>":"")}
+function excerpt(b){var l=String(b).split("\n").filter(function(x){x=x.trim();return x&&x.indexOf("## ")!==0&&x.indexOf("- ")!==0})[0]||"";return l.slice(0,90)}
+
+function draw(){
+ $("grid").innerHTML=ARTICLES.map(function(a,i){
+  return '<button class="card" data-i="'+i+'">'+(a.cover?'<img src="'+esc(a.cover)+'" alt="">':'<div class="ph" style="padding:0"></div>')+
+  '<div><b>'+esc(a.title||"")+'</b><small>'+esc(a.date||"")+'</small><p>'+esc(excerpt(a.body))+'</p></div></button>'}).join("")}
+
+function open_(id){$(id).classList.add("on")}
+function closeAll(){document.querySelectorAll(".modal").forEach(function(m){m.classList.remove("on")})}
+$("grid").addEventListener("click",function(e){var c=e.target.closest(".card");if(!c)return;
+ var a=ARTICLES[+c.dataset.i];$("rDate").textContent=a.date||"";
+ $("rBody").innerHTML=(a.cover?'<img src="'+esc(a.cover)+'" alt="">':"")+"<h1>"+esc(a.title||"")+"</h1>"+fmt(a.body);open_("readM")});
+document.querySelectorAll(".modal").forEach(function(m){m.addEventListener("click",function(e){if(e.target===m||e.target.hasAttribute("data-close"))closeAll()})});
+document.addEventListener("keydown",function(e){if(e.key==="Escape")closeAll()});
+
+/* โหลดบทความที่เผยแพร่แล้ว */
+function dataUrl(){return FILE}
+fetch(dataUrl()+"?v="+Date.now()).then(function(r){return r.ok?r.json():null}).then(function(d){if(d&&d.length){ARTICLES=d;draw()}}).catch(function(){});
+draw();
+
+/* ฟอร์มเขียน */
+$("newBtn").onclick=function(){
+ var u=store("gu"),r=store("gr");
+ $("gu").value=u||GH_USER||(location.hostname.match(/^(.+)\.github\.io$/)||[])[1]||"";
+ $("gr").value=r||GH_REPO;$("gb").value=store("gb")||GH_BRANCH;$("gt").value=store("gt");
+ $("cfg").open=!store("gt");$("msg").textContent="";open_("writeM")};
+
+var cover="";
+$("wf").onchange=function(){var f=this.files[0];if(!f){cover="";return}
+ var rd=new FileReader();rd.onload=function(){var im=new Image();im.onload=function(){
+  var w=Math.min(700,im.width),h=im.height*w/im.width,c=document.createElement("canvas");
+  c.width=w;c.height=h;c.getContext("2d").drawImage(im,0,0,w,h);cover=c.toDataURL("image/jpeg",.65)};im.src=rd.result};rd.readAsDataURL(f)};
+
+function b64(s){return btoa(unescape(encodeURIComponent(s)))}
+function unb64(s){return decodeURIComponent(escape(atob(s.replace(/\n/g,""))))}
+function say(t,ok){var m=$("msg");m.textContent=t;m.style.color=ok?"#0b8f63":"#c0392b"}
+
+$("pub").onclick=async function(){
+ var u=$("gu").value.trim(),r=$("gr").value.trim(),b=$("gb").value.trim()||"main",t=$("gt").value.trim();
+ var title=$("wt").value.trim(),body=$("wb").value.trim();
+ if(!u||!r||!t)return say("กรอกการตั้งค่าครั้งแรกให้ครบ (บัญชี, Repository, Token)");
+ if(!title||!body)return say("กรอกหัวข้อและเนื้อหาก่อน");
+ store("gu",u);store("gr",r);store("gb",b);store("gt",t);
+ say("กำลังเผยแพร่...",true);
+ var api="https://api.github.com/repos/"+u+"/"+r+"/contents/"+FILE,
+ H={Authorization:"Bearer "+t,Accept:"application/vnd.github+json"};
+ try{
+  var sha,list=ARTICLES.slice();
+  var g=await fetch(api+"?ref="+encodeURIComponent(b)+"&t="+Date.now(),{headers:H});
+  if(g.ok){var j=await g.json();sha=j.sha;list=JSON.parse(unb64(j.content))}
+  else if(g.status!==404)throw new Error("อ่านข้อมูลไม่ได้ ("+g.status+") ตรวจ Token และชื่อ Repository");
+  var d=new Date(),ds=d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);
+  list.unshift({id:ds+"-"+Date.now(),date:ds,title:title,body:body,cover:cover});
+  var p=await fetch(api,{method:"PUT",headers:H,body:JSON.stringify({message:"add article: "+title,content:b64(JSON.stringify(list,null,1)),sha:sha,branch:b})});
+  if(!p.ok)throw new Error("บันทึกไม่สำเร็จ ("+p.status+") ตรวจสิทธิ์ Contents = Read and write");
+  ARTICLES=list;draw();$("wt").value="";$("wb").value="";$("wf").value="";cover="";
+  say("เผยแพร่แล้ว เว็บจะอัปเดตภายใน 1–2 นาที",true);
+ }catch(e){say(e.message||"เกิดข้อผิดพลาด")}};
+</script>
+</body>
+</html>
